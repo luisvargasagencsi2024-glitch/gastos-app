@@ -1,20 +1,13 @@
-// ========== CATEGORIES ==========
-
-const CATEGORIES = [
-  { id: 1, name: 'Salario',     type: 'income',  icon: '💰' },
-  { id: 2, name: 'Comida',      type: 'expense', icon: '🍕' },
-  { id: 3, name: 'Transporte',  type: 'expense', icon: '🚗' },
-  { id: 4, name: 'Vivienda',    type: 'expense', icon: '🏠' },
-  { id: 5, name: 'Servicios',   type: 'expense', icon: '💡' },
-  { id: 6, name: 'Salud',       type: 'expense', icon: '💊' },
-  { id: 7, name: 'Ocio',        type: 'expense', icon: '🎬' },
-  { id: 8, name: 'Educación',   type: 'expense', icon: '📚' },
-];
-
 const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
+let categories = [];
+
 function getCategory(id) {
-  return CATEGORIES.find(c => c.id === id);
+  return categories.find(c => c.id === Number(id));
+}
+
+async function loadCategories() {
+  categories = await api('GET', '/api/categories');
 }
 
 // ========== API ==========
@@ -166,7 +159,7 @@ function renderDashboard() {
   const summary = getMonthSummary(currentKey);
   const expenseTxs = getMonthTransactions(currentKey).filter(t => t.type === 'expense');
 
-  const totalBudget = CATEGORIES.filter(c => c.type === 'expense').reduce((sum, c) => sum + (budgets[c.id] || 0), 0);
+  const totalBudget = categories.filter(c => c.type === 'expense').reduce((sum, c) => sum + (budgets[c.id] || 0), 0);
   const totalSpent = expenseTxs.reduce((sum, t) => sum + t.amount, 0);
   const pct = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
   const remaining = totalBudget - totalSpent;
@@ -264,7 +257,7 @@ function renderDashboard() {
 
   const catMap = {};
   expenseTxs.forEach(t => {
-    const cat = getCategory(t.category_id);
+    const cat = getCategory(t.categoryId);
     const name = cat ? cat.name : 'Otros';
     catMap[name] = (catMap[name] || 0) + t.amount;
   });
@@ -346,7 +339,7 @@ function renderTxList(monthKey) {
     return;
   }
   list.innerHTML = txs.map(t => {
-    const cat = getCategory(t.category_id);
+    const cat = getCategory(t.categoryId);
     const icon = cat ? cat.icon : '📄';
     return `
       <li class="transaction-item" data-id="${t.id}">
@@ -391,8 +384,8 @@ function renderTxList(monthKey) {
 
 function populateCatDropdown(catType, selectedId) {
   const selCat = document.getElementById('categoria');
-  selCat.innerHTML = CATEGORIES.filter(c => c.type === catType).map(c =>
-    `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${c.icon} ${c.name}</option>`
+  selCat.innerHTML = categories.filter(c => c.type === catType).map(c =>
+    `<option value="${c.id}" ${c.id === Number(selectedId) ? 'selected' : ''}>${c.icon} ${c.name}</option>`
   ).join('');
 }
 
@@ -405,12 +398,26 @@ function openTxModal(existingTx, monthKey) {
   document.getElementById('monto').value = existingTx ? existingTx.amount : '';
   document.getElementById('descripcion').value = existingTx ? (existingTx.description || '') : '';
   document.getElementById('fecha').value = existingTx ? existingTx.date : todayStr();
-  populateCatDropdown(tipo, existingTx ? existingTx.category_id : null);
+  populateCatDropdown(tipo, existingTx ? existingTx.categoryId : null);
   modal.classList.remove('hidden');
 }
 
 document.getElementById('tipo').addEventListener('change', () => {
   populateCatDropdown(document.getElementById('tipo').value, null);
+});
+
+document.getElementById('btnAddCategory').addEventListener('click', async () => {
+  const tipo = document.getElementById('tipo').value;
+  const name = prompt('Nueva categoría:');
+  if (!name || name.trim().length < 2) return;
+  const icon = prompt('Ícono (opcional, ej: 🐱):') || '📄';
+  try {
+    const cat = await api('POST', '/api/categories', { name: name.trim(), type: tipo, icon });
+    categories.push(cat);
+    populateCatDropdown(tipo, cat.id);
+  } catch (err) {
+    alert('Error al crear categoría: ' + err.message);
+  }
 });
 
 document.getElementById('transactionForm').addEventListener('submit', async (e) => {
@@ -456,9 +463,9 @@ function renderBudgets() {
   const currentKey = months[months.length - 1];
   const expenseTxs = getMonthTransactions(currentKey).filter(t => t.type === 'expense');
   const spentByCat = {};
-  expenseTxs.forEach(t => { spentByCat[t.category_id] = (spentByCat[t.category_id] || 0) + t.amount; });
+  expenseTxs.forEach(t => { spentByCat[t.categoryId] = (spentByCat[t.categoryId] || 0) + t.amount; });
 
-  const items = CATEGORIES.filter(c => c.type === 'expense').map(cat => {
+  const items = categories.filter(c => c.type === 'expense').map(cat => {
     const budget = budgets[cat.id] || 0;
     const spent = spentByCat[cat.id] || 0;
     const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
@@ -653,6 +660,7 @@ document.getElementById('regPassword2').addEventListener('keydown', (e) => {
 
 async function initApp() {
   showApp();
+  await loadCategories();
   await loadTransactions();
   await loadBudgets();
   setView('dashboard');

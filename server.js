@@ -3,7 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const path = require('path');
-const { connectDb, User, Transaction, Budget } = require('./db');
+const { connectDb, User, Transaction, Budget, Category } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -146,6 +146,29 @@ app.put('/api/budgets', requireAuth, async (req, res) => {
     { upsert: true }
   );
   res.json({ success: true });
+});
+
+// Categories
+
+app.get('/api/categories', requireAuth, async (req, res) => {
+  const cats = await Category.find({
+    $or: [{ isDefault: true }, { userId: req.session.userId }]
+  }).sort({ id: 1 }).lean();
+  res.json(cats.map(c => ({ id: c.id, name: c.name, type: c.type, icon: c.icon, isDefault: c.isDefault })));
+});
+
+app.post('/api/categories', requireAuth, async (req, res) => {
+  const { name, type, icon } = req.body;
+  if (!name || !type) {
+    return res.status(400).json({ error: 'Nombre y tipo requeridos' });
+  }
+
+  const maxCat = await Category.findOne({ userId: req.session.userId }).sort({ id: -1 }).lean();
+  const maxDefault = await Category.findOne({ isDefault: true }).sort({ id: -1 }).lean();
+  const nextId = Math.max(maxCat ? maxCat.id : 0, maxDefault ? maxDefault.id : 0) + 1;
+
+  const cat = await new Category({ id: nextId, name, type, icon: icon || '📄', userId: req.session.userId }).save();
+  res.json({ id: cat.id, name: cat.name, type: cat.type, icon: cat.icon, isDefault: false });
 });
 
 app.get('*', (req, res) => {
