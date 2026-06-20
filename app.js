@@ -166,6 +166,35 @@ function renderDashboard() {
   const summary = getMonthSummary(currentKey);
   const expenseTxs = getMonthTransactions(currentKey).filter(t => t.type === 'expense');
 
+  const totalBudget = CATEGORIES.filter(c => c.type === 'expense').reduce((sum, c) => sum + (budgets[c.id] || 0), 0);
+  const totalSpent = expenseTxs.reduce((sum, t) => sum + t.amount, 0);
+  const pct = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+  const remaining = totalBudget - totalSpent;
+  const hasBudget = totalBudget > 0;
+
+  let barColor, alertMsg, alertClass;
+  if (!hasBudget) {
+    barColor = 'green';
+    alertMsg = null;
+    alertClass = '';
+  } else if (pct >= 100) {
+    barColor = 'red';
+    alertMsg = `🔴 ¡Superaste tu presupuesto por ${formatMoney(Math.abs(remaining))}!`;
+    alertClass = 'danger';
+  } else if (pct >= 90) {
+    barColor = 'red';
+    alertMsg = `🔴 ¡Cuidado! Has gastado el ${pct}% de tu presupuesto`;
+    alertClass = 'danger';
+  } else if (pct >= 70) {
+    barColor = 'yellow';
+    alertMsg = `⚠️ Ya has gastado el ${pct}% de tu presupuesto`;
+    alertClass = 'warning';
+  } else {
+    barColor = 'green';
+    alertMsg = `✅ Llevas gastado el ${pct}% — vas bien`;
+    alertClass = 'ok';
+  }
+
   el.innerHTML = `
     <div class="summary-grid">
       <div class="summary-card">
@@ -181,6 +210,46 @@ function renderDashboard() {
         <div class="value balance">${formatMoney(summary.balance)}</div>
       </div>
     </div>
+
+    <div class="card budget-overview">
+      <div class="card-title">Presupuesto vs Gastos — ${getMonthLabel(currentKey)}</div>
+
+      <div class="budget-grid">
+        <div class="budget-label">Presupuesto total</div>
+        <div class="budget-value">${hasBudget ? formatMoney(totalBudget) : '—'}</div>
+
+        <div class="budget-label">Gastado hasta ahora</div>
+        <div class="budget-value ${totalSpent > totalBudget && hasBudget ? 'budget-over' : ''}">${formatMoney(totalSpent)}</div>
+
+        ${hasBudget ? `
+        <div class="budget-label">Restante</div>
+        <div class="budget-value" style="color:${remaining >= 0 ? '#10b981' : '#ef4444'};font-weight:700">${remaining >= 0 ? formatMoney(remaining) : '- ' + formatMoney(Math.abs(remaining))}</div>
+        ` : ''}
+      </div>
+
+      ${hasBudget ? `
+      <div class="budget-bar-wrapper">
+        <div class="budget-bar-track">
+          <div class="budget-bar-fill ${barColor}" style="width:${Math.min(pct, 100)}%"></div>
+        </div>
+        <span class="budget-bar-pct">${pct}%</span>
+      </div>
+      ` : `
+      <p class="budget-no-data">Configura tus presupuestos en la pestaña <strong>Presupuestos</strong> para ver esta sección</p>
+      `}
+
+      ${alertMsg ? `<p class="budget-alert ${alertClass}">${alertMsg}</p>` : ''}
+
+      <div class="budget-income-row">
+        <span>Ingresos del mes</span>
+        <span class="budget-income-value">${formatMoney(summary.income)}</span>
+      </div>
+      <div class="budget-income-row budget-savings">
+        <span>${hasBudget ? 'Ahorro estimado (ingresos − gastos)' : 'Ahorro del mes'}</span>
+        <span class="budget-income-value" style="color:${summary.balance >= 0 ? '#10b981' : '#ef4444'};font-weight:700">${formatMoney(summary.balance)}</span>
+      </div>
+    </div>
+
     <div class="charts-row">
       <div class="card">
         <div class="card-title">Gastos por categoría — ${getMonthLabel(currentKey)}</div>

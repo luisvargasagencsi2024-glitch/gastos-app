@@ -398,6 +398,117 @@ body {
   color: #1a1a2e;
 }
 
+/* Budget overview on dashboard */
+.budget-overview {
+  margin-bottom: 16px;
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.budget-label {
+  font-size: 0.88rem;
+  color: #666;
+}
+
+.budget-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.budget-value.budget-over {
+  color: #ef4444;
+}
+
+.budget-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.budget-bar-track {
+  flex: 1;
+  height: 14px;
+  background: #e5e7eb;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.budget-bar-fill {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 0.4s;
+}
+
+.budget-bar-fill.green { background: #10b981; }
+.budget-bar-fill.yellow { background: #f59e0b; }
+.budget-bar-fill.red { background: #ef4444; }
+
+.budget-bar-pct {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #444;
+  min-width: 40px;
+  text-align: right;
+}
+
+.budget-alert {
+  font-size: 0.88rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.budget-alert.ok {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.budget-alert.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.budget-alert.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.budget-no-data {
+  font-size: 0.88rem;
+  color: #888;
+  margin-bottom: 12px;
+  padding: 8px 0;
+}
+
+.budget-income-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.88rem;
+  color: #666;
+}
+
+.budget-income-row.budget-savings {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+.budget-income-value {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1a1a2e;
+}
+
 /* Reports */
 .report-table {
   width: 100%;
