@@ -368,7 +368,7 @@ function renderTxList(monthKey) {
   list.querySelectorAll('.tx-delete').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const id = Number(btn.closest('.transaction-item').dataset.id);
+      const id = btn.closest('.transaction-item').dataset.id;
       if (confirm('¿Eliminar esta transacción?')) {
         await api('DELETE', `/api/transactions/${id}`);
         await loadTransactions();
@@ -380,7 +380,7 @@ function renderTxList(monthKey) {
   list.querySelectorAll('.transaction-item').forEach(item => {
     item.addEventListener('click', (e) => {
       if (e.target.classList.contains('tx-delete')) return;
-      const id = Number(item.dataset.id);
+      const id = item.dataset.id;
       const tx = transactions.find(t => t.id === id);
       if (tx) openTxModal(tx, monthKey);
     });
@@ -415,7 +415,7 @@ document.getElementById('tipo').addEventListener('change', () => {
 
 document.getElementById('transactionForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const id = Number(document.getElementById('editId').value) || null;
+  const id = document.getElementById('editId').value || null;
   const data = {
     amount: Number(document.getElementById('monto').value),
     type: document.getElementById('tipo').value,

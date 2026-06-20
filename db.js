@@ -1,49 +1,38 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+const mongoose = require('mongoose');
 
-const DB_PATH = path.join(__dirname, 'data.sqlite');
+const userSchema = new mongoose.Schema({
+  username: { type: String, unique: true, required: true },
+  passwordHash: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
 
-let db;
+const transactionSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  amount: { type: Number, required: true },
+  type: { type: String, enum: ['income', 'expense'], required: true },
+  categoryId: { type: Number, required: true },
+  date: { type: String, required: true },
+  description: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now },
+});
 
-function getDb() {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    initTables();
-  }
-  return db;
+const budgetSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  categoryId: { type: Number, required: true },
+  amount: { type: Number, default: 0 },
+});
+
+budgetSchema.index({ userId: 1, categoryId: 1 }, { unique: true });
+
+const User = mongoose.model('User', userSchema);
+const Transaction = mongoose.model('Transaction', transactionSchema);
+const Budget = mongoose.model('Budget', budgetSchema);
+
+async function connectDb() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI no está definida');
+  await mongoose.connect(uri);
+  console.log('Conectado a MongoDB');
 }
 
-function initTables() {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS transactions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      amount REAL NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('income','expense')),
-      category_id INTEGER NOT NULL,
-      date TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS budgets (
-      user_id INTEGER NOT NULL,
-      category_id INTEGER NOT NULL,
-      amount REAL DEFAULT 0,
-      PRIMARY KEY (user_id, category_id),
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-  `);
-}
-
-module.exports = { getDb };
+module.exports = { connectDb, User, Transaction, Budget };
